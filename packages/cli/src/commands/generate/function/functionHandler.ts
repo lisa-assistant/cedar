@@ -58,21 +58,18 @@ export const files = async ({
     outputFiles.push(scenarioFile)
   }
 
-  return outputFiles.reduce(
-    async (accP, [outputPath, content]) => {
-      const acc = await accP
+  return outputFiles.reduce(async (accP, [outputPath, content]) => {
+    const acc = await accP
 
-      const template = generateTypescript
-        ? content
-        : await transformTSToJS(outputPath, content)
+    const template = generateTypescript
+      ? content
+      : await transformTSToJS(outputPath, content)
 
-      return {
-        [outputPath]: template,
-        ...acc,
-      }
-    },
-    Promise.resolve({} as Record<string, string>),
-  )
+    return {
+      [outputPath]: template,
+      ...acc,
+    }
+  }, Promise.resolve<Record<string, string>>({}))
 }
 
 // This could be built using createYargsForComponentGeneration;

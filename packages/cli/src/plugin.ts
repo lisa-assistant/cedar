@@ -42,6 +42,8 @@ export async function loadPlugins(yargs: Argv): Promise<Argv> {
   // TODO: We should have some mechanism to fetch the cache from an online or
   // precomputed source this will allow us to have a cache hit on the first run
   // of a command
+  // loadCommandCache comes from an untyped JS module — cast is safe because
+  // we control both the write (saveCommandCache) and read paths of the cache
   const pluginCommandCache = loadCommandCache() as PluginCommandCache
 
   // Check if the command is built in to the base CLI package
@@ -199,11 +201,14 @@ export async function loadPlugins(yargs: Argv): Promise<Argv> {
       continue
     }
 
+    // _builtin is string[], all other entries are command maps — skip arrays
+    if (Array.isArray(cacheEntry)) {
+      continue
+    }
+
     const commandFirstWords: string[] = []
 
-    for (const [command, info] of Object.entries(
-      cacheEntry as Record<string, { aliases?: string[] }>,
-    )) {
+    for (const [command, info] of Object.entries(cacheEntry)) {
       commandFirstWords.push(command.split(' ')[0])
       commandFirstWords.push(
         ...(info.aliases?.map((a) => a.split(' ')[0]) ?? []),
@@ -307,14 +312,12 @@ async function loadCommandsFromCacheOrPackage(
     | Record<string, { aliases?: string[]; description?: string }>
     | undefined = undefined
 
-  if (readFromCache) {
-    cacheEntry =
-      cache !== undefined
-        ? (cache[packageName] as Record<
-            string,
-            { aliases?: string[]; description?: string }
-          >)
-        : undefined
+  if (readFromCache && cache !== undefined) {
+    const cacheValue = cache[packageName]
+    // _builtin is string[]; all other entries are command maps
+    if (!Array.isArray(cacheValue)) {
+      cacheEntry = cacheValue
+    }
   }
 
   if (cacheEntry !== undefined) {
@@ -364,7 +367,8 @@ async function loadCommandsFromCacheOrPackage(
       cache[packageName] = cacheUpdate
     }
 
-    // plugin.commands are proper yargs CommandModule objects from the plugin package
+    // plugin is loaded from an untyped JS module (loadPluginPackage has @ts-expect-error);
+    // the cast is necessary because we cannot type dynamic plugin imports statically
     return (plugin.commands ?? []) as CommandModule[]
   }
 
