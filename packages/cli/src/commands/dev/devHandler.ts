@@ -459,13 +459,17 @@ export const handler = async ({
     // dotfiles, e.g. `.DS_Store`) should be excluded.
     fs.readdirSync(cedarPaths.api.jobs).some((entry) => !entry.startsWith('.'))
 
-  if (jobsConfigured && ud) {
+  if (jobsConfigured && unifiedDevCommand) {
     // Under Unified Dev, `cedar-unified-dev` starts and runs the jobs
     // workers itself, in-process, loading jobs through the same Vite server
     // that already serves `api/src` (see `jobsDevMiddleware.ts`) instead of
     // `cedar-jobs work`'s `api/dist`-only loading. No separate job to push
     // here — it all happens inside the single `unifiedDevCommand` process
-    // started below.
+    // started below. Note this checks `unifiedDevCommand`, not the `ud` flag
+    // directly: `buildUnifiedDevCommand()` can still fall back to `null` even
+    // when `--ud` was passed (streaming SSR, API-only/web-only workspace, a
+    // custom server file), in which case classic dev runs instead and the
+    // nodemon+dist worker below is the correct path.
   } else if (jobsConfigured) {
     jobs.push({
       name: 'jobs',
