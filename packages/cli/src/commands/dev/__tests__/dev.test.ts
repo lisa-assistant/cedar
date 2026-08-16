@@ -519,7 +519,7 @@ describe('yarn cedar dev', () => {
     expect(jobsCommand?.command).toContain('/mocked/project/api/dist')
   })
 
-  it('Should not start the jobs worker under --ud, and should warn instead', async () => {
+  it('Should not push a separate jobs worker job under --ud (cedar-unified-dev runs jobs in-process)', async () => {
     vi.mocked(getPaths).mockReturnValue({
       base: '/mocked/project',
       // @ts-expect-error - only declaring what the test needs
@@ -544,20 +544,11 @@ describe('yarn cedar dev', () => {
     })
     mockJobsDirEntries = ['WelcomeNoticeJob']
 
-    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-
     await handler({ workspace: ['api', 'web'], ud: true })
 
+    // `cedar-unified-dev` (started as the single unified dev job) loads and
+    // runs jobs workers itself - see `jobsDevMiddleware.ts` in `@cedarjs/vite`.
     expect(findJobsCommand()).toBeUndefined()
-    expect(
-      consoleLogSpy.mock.calls.some(([message]) =>
-        String(message).includes(
-          'Background jobs are not yet supported with Unified Dev (--ud)',
-        ),
-      ),
-    ).toBe(true)
-
-    consoleLogSpy.mockRestore()
   })
 
   it('Should not start the jobs worker when only a .keep placeholder exists', async () => {
