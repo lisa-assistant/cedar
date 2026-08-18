@@ -152,7 +152,7 @@ function findBaselineRun(
     if (
       run.status === 'completed' &&
       VERDICT_CONCLUSIONS.includes(run.conclusion) &&
-      run.head_sha !== excludeHeadSha
+      !(excludeHeadSha && run.head_sha === excludeHeadSha && run.run_attempt > 1)
     ) {
       return { run, index: i }
     }
